@@ -15,4 +15,4 @@ key.properties
 .dart_tool/*
 /build/
 build/
-/Raseed-Backend/lib/firebase_config.json
+lib/firebase_config.json
