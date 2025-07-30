@@ -1,0 +1,62 @@
+name: raseed
+description: A new Flutter project.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  animated_text_kit: ^4.2.2
+  image_picker: ^1.0.4
+  cupertino_icons: ^1.0.8
+  http: ^1.1.0
+  http_parser: ^4.0.2
+  url_launcher: ^6.2.2
+  flutter_animate: ^4.5.0
+  fl_chart: ^0.68.0
+  file_picker: ^8.0.0+1
+  permission_handler: ^11.3.1
+  audio_waveforms: ^1.1.0
+  glass_kit: ^3.0.0
+  shimmer: ^3.0.0
+  flutter_staggered_animations: ^1.1.1
+  fluttertoast: ^8.2.4
+  firebase_core: ^3.15.2
+  cloud_firestore: ^5.6.12
+  firebase_auth: ^5.7.0
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/raseed_logo.jpg
+
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700

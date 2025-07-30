@@ -1,0 +1,590 @@
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../services/warranty_reminder_service.dart';
+
+class WarrantyReminderScreen extends StatefulWidget {
+  final String userId;
+
+  const WarrantyReminderScreen({Key? key, required this.userId}) : super(key: key);
+
+  @override
+  _WarrantyReminderScreenState createState() => _WarrantyReminderScreenState();
+}
+
+class _WarrantyReminderScreenState extends State<WarrantyReminderScreen> {
+  List<Map<String, dynamic>> _warrantyProducts = [];
+  bool _isLoading = true;
+  Set<String> _creatingReminders = {};
+  Map<String, String> _createdReminders = {}; // productName -> reminderDate
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWarrantyProducts();
+  }
+
+  Future<void> _loadWarrantyProducts() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final products = await WarrantyReminderService.getWarrantyProducts(widget.userId);
+      setState(() {
+        _warrantyProducts = products;
+      });
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Error loading warranty products: ${e.toString()}",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _createSingleReminder(String productName) async {
+    setState(() {
+      _creatingReminders.add(productName);
+    });
+
+    try {
+      final result = await WarrantyReminderService.createSingleWarrantyReminder(widget.userId, productName);
+      
+      if (result['status'] == 'success') {
+        // Extract the reminder date from event details
+        String reminderDate = '';
+        if (result['event_details'] != null && result['event_details']['start'] != null) {
+          try {
+            DateTime startDate = DateTime.parse(result['event_details']['start']);
+            reminderDate = "${startDate.day}/${startDate.month}/${startDate.year}";
+          } catch (e) {
+            reminderDate = 'today';
+          }
+        } else {
+          reminderDate = 'set';
+        }
+        
+        // Store the reminder date for this product
+        setState(() {
+          _createdReminders[productName] = reminderDate;
+        });
+        
+        Fluttertoast.showToast(
+          msg: "✅ Calendar reminder created for $productName!",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+      } else if (result['requires_google_signin'] == true) {
+        // Show Google Sign-In prompt
+        Fluttertoast.showToast(
+          msg: "🔑 Please sign in with Google to enable calendar reminders",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.orange,
+          textColor: Colors.white,
+        );
+        
+        // You can add navigation to Google Sign-In here
+        _showGoogleSignInDialog();
+      } else {
+        throw Exception(result['error_message'] ?? 'Unknown error');
+      }
+      
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "❌ Error creating reminder for $productName: ${e.toString()}",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _creatingReminders.remove(productName);
+      });
+    }
+  }
+
+  void _showGoogleSignInDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Google Sign-In Required'),
+          content: Text(
+            'To create calendar reminders, please sign in with your Google account. This will give the app permission to create events in your Google Calendar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navigate to sign-in screen or trigger Google sign-in
+                // You can implement this based on your app's navigation structure
+              },
+              child: Text('Sign In with Google'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _createAllReminders() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      Fluttertoast.showToast(
+        msg: "Creating calendar reminders... This may take a moment.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Theme.of(context).primaryColor,
+        textColor: Colors.white,
+      );
+
+      // Call the real API with OAuth
+      final result = await WarrantyReminderService.createAllWarrantyReminders(widget.userId);
+      
+      if (result['status'] == 'success') {
+        String successMessage = "✅ Created ${result['reminders_created']} calendar reminders!";
+        
+        // Try to extract reminder date from the first event if available
+        String reminderDateText = '';
+        if (result['event_details'] != null && result['event_details']['start'] != null) {
+          try {
+            DateTime startDate = DateTime.parse(result['event_details']['start']);
+            reminderDateText = " for ${startDate.day}/${startDate.month}/${startDate.year}";
+          } catch (e) {
+            reminderDateText = '';
+          }
+        }
+        
+        Fluttertoast.showToast(
+          msg: successMessage + reminderDateText,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+        
+        // Show success dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('✅ Reminders Created!'),
+                content: Text(
+                  '$successMessage\n\nCheck your Google Calendar for the warranty reminders 2 days before expiry dates.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      } else {
+        throw Exception(result['error_message'] ?? 'Unknown error');
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "❌ Error creating reminders: ${e.toString()}",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Color _getStatusColor(Map<String, dynamic> product, bool isDark) {
+    final daysUntilExpiry = product['days_until_expiry'];
+    if (daysUntilExpiry == null) return isDark ? Colors.grey[600]! : Colors.grey[400]!;
+    
+    if (daysUntilExpiry <= 7) return Colors.red;
+    if (daysUntilExpiry <= 30) return Colors.orange;
+    return Colors.green;
+  }
+
+  String _getStatusText(Map<String, dynamic> product) {
+    final daysUntilExpiry = product['days_until_expiry'];
+    if (daysUntilExpiry == null) return 'No expiry date';
+    
+    if (daysUntilExpiry < 0) return 'Expired';
+    if (daysUntilExpiry == 0) return 'Expires today';
+    if (daysUntilExpiry == 1) return 'Expires tomorrow';
+    if (daysUntilExpiry <= 7) return 'Expires in $daysUntilExpiry days';
+    if (daysUntilExpiry <= 30) return 'Expires in $daysUntilExpiry days';
+    return 'Expires in $daysUntilExpiry days';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? Colors.grey[850] : Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Warranty Reminders',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: isDark ? Colors.grey[800] : Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDark ? Colors.white : Colors.black,
+        ),
+        actions: [
+          if (_warrantyProducts.isNotEmpty)
+            TextButton.icon(
+              onPressed: _isLoading ? null : _createAllReminders,
+              icon: _isLoading
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    )
+                  : Icon(Icons.schedule, color: Theme.of(context).primaryColor),
+              label: Text(
+                'Set All',
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header card with explanation
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          color: Theme.of(context).primaryColor,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Warranty & Expiry Reminders',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Set calendar reminders 2 days before your warranties or products expire. Click "Set Reminder" for individual products or "Set All" for all products.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[300] : Colors.grey[700],
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Products with warranty section
+            Text(
+              'Products with Warranty/Expiry (${_warrantyProducts.length})',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Products list
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : _warrantyProducts.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.inventory_2_outlined,
+                                size: 64,
+                                color: isDark ? Colors.grey[600] : Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No products with warranty found',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Scan more receipts to find products with warranty information',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.grey[500] : Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadWarrantyProducts,
+                          child: ListView.builder(
+                            itemCount: _warrantyProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = _warrantyProducts[index];
+                              final productName = product['product_name'] ?? 'Unknown Product';
+                              final isCreatingReminder = _creatingReminders.contains(productName);
+                              final statusColor = _getStatusColor(product, isDark);
+                              final statusText = _getStatusText(product);
+                              
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Product name and status
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  productName,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                if (product['brand'] != null)
+                                                  Text(
+                                                    'Brand: ${product['brand']}',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: statusColor.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: statusColor.withOpacity(0.3),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              statusText,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: statusColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      
+                                      // Product details and reminder status
+                                      Row(
+                                        children: [
+                                          if (product['has_warranty'] == true)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Text(
+                                                'Warranty',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.blue,
+                                                ),
+                                              ),
+                                            ),
+                                          if (product['has_warranty'] == true && product['has_expiry'] == true)
+                                            const SizedBox(width: 8),
+                                          if (product['has_expiry'] == true)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.purple.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Text(
+                                                'Expiry',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.purple,
+                                                ),
+                                              ),
+                                            ),
+                                          const SizedBox(width: 8),
+                                          // Reminder created tag
+                                          if (_createdReminders.containsKey(productName))
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                'Reminder set for ${_createdReminders[productName]}',
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.green,
+                                                ),
+                                              ),
+                                            ),
+                                          const Spacer(),
+                                          if (product['expiry_date'] != null)
+                                            Text(
+                                              'Expires: ${product['expiry_date']}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      
+                                      // Set reminder button
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: (isCreatingReminder || _createdReminders.containsKey(productName)) 
+                                              ? null 
+                                              : () => _createSingleReminder(productName),
+                                          icon: isCreatingReminder
+                                              ? SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                                      Colors.white,
+                                                    ),
+                                                  ),
+                                                )
+                                              : _createdReminders.containsKey(productName)
+                                                  ? const Icon(Icons.check_circle, color: Colors.white, size: 20)
+                                                  : const Icon(Icons.schedule, color: Colors.white, size: 20),
+                                          label: Text(
+                                            isCreatingReminder 
+                                                ? 'Setting Reminder...' 
+                                                : _createdReminders.containsKey(productName)
+                                                    ? 'Reminder Created ✓'
+                                                    : 'Set Reminder (2 Days Before)',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: _createdReminders.containsKey(productName)
+                                                ? Colors.green
+                                                : Theme.of(context).primaryColor,
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            elevation: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
