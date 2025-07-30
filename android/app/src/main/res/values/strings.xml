@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Replace with your NEW web client ID from raseed-ai-backend project -->
-    <string name="default_web_client_id">YOUR_NEW_WEB_CLIENT_ID_HERE</string>
+    <string name="default_web_client_id">101238677078-u14vij891l2c0405p2rq9k41vqdu587t.apps.googleusercontent.com</string>
+    <string name="android_client_id">101238677078-tqbnq1la9c6rt11hif85i8k2t51kdq97.apps.googleusercontent.com</string>
 </resources>

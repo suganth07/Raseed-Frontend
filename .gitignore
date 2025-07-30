@@ -16,3 +16,4 @@ key.properties
 /build/
 build/
 lib/firebase_config.json
+/android/app/google-services.json
