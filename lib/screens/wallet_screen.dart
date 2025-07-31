@@ -116,39 +116,47 @@ class _WalletScreenState extends State<WalletScreen>
       if (response.success && response.walletUrl != null) {
         final uri = Uri.parse(response.walletUrl!);
         if (await canLaunchUrl(uri)) {
+          // Launch Google Wallet URL
           await launchUrl(uri, mode: LaunchMode.externalApplication);
 
-          setState(() {
-            final index = _allItems.indexWhere((i) => i.id == item.id);
-            if (index != -1) {
-              _allItems[index] = WalletEligibleItem(
-                id: item.id,
-                title: item.title,
-                subtitle: item.subtitle,
-                itemType: item.itemType,
-                receiptId: item.receiptId,
-                merchantName: item.merchantName,
-                totalAmount: item.totalAmount,
-                currency: item.currency,
-                transactionDate: item.transactionDate,
-                itemCount: item.itemCount,
-                productName: item.productName,
-                brand: item.brand,
-                warrantyPeriod: item.warrantyPeriod,
-                expiryDate: item.expiryDate,
-                purchaseDate: item.purchaseDate,
-                addedToWallet: true,
-                walletPassId: response.passId,
-                createdAt: item.createdAt,
-              );
-              _receipts =
-                  _allItems.where((item) => item.isReceipt).toList();
-              _warranties =
-                  _allItems.where((item) => item.isWarranty).toList();
-            }
-          });
+          // Wait a moment for the user to potentially add the pass
+          await Future.delayed(const Duration(seconds: 2));
 
-          _showSuccessDialog('Pass added to Google Wallet successfully!');
+          // Show dialog asking if pass was successfully added
+          if (mounted) {
+            final wasAdded = await _showPassAddedConfirmation();
+            if (wasAdded) {
+              setState(() {
+                final index = _allItems.indexWhere((i) => i.id == item.id);
+                if (index != -1) {
+                  _allItems[index] = WalletEligibleItem(
+                    id: item.id,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    itemType: item.itemType,
+                    receiptId: item.receiptId,
+                    merchantName: item.merchantName,
+                    totalAmount: item.totalAmount,
+                    currency: item.currency,
+                    transactionDate: item.transactionDate,
+                    itemCount: item.itemCount,
+                    productName: item.productName,
+                    brand: item.brand,
+                    warrantyPeriod: item.warrantyPeriod,
+                    expiryDate: item.expiryDate,
+                    purchaseDate: item.purchaseDate,
+                    addedToWallet: true,
+                    walletPassId: response.passId,
+                    createdAt: item.createdAt,
+                  );
+                  _receipts = _allItems.where((item) => item.isReceipt).toList();
+                  _warranties = _allItems.where((item) => item.isWarranty).toList();
+                }
+              });
+              
+              _showSuccessDialog('Pass added to Google Wallet successfully!');
+            }
+          }
         } else {
           _showErrorDialog('Could not open Google Wallet');
         }
@@ -162,6 +170,29 @@ class _WalletScreenState extends State<WalletScreen>
         _loadingItemId = null;
       });
     }
+  }
+
+  Future<bool> _showPassAddedConfirmation() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Pass Addition'),
+        content: const Text(
+          'Did you successfully add the pass to your Google Wallet?\n\n'
+          'Note: This app is in testing mode. In production, all Google users would have access.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No, try again'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, added successfully'),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   void _showErrorDialog(String message) {

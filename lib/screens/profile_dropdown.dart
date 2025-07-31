@@ -54,6 +54,123 @@ class _ProfileDropdownState extends State<ProfileDropdown> {
       _loadUserData();
     }
   }
+
+  /// Public method to refresh user data (call after new receipts are processed)
+  static Future<void> refreshUserData() async {
+    // Clear cache to force refresh
+    _clearCache();
+  }
+
+  /// Load user profile data from Firebase with real-time updates
+  Future<void> _loadUserData() async {
+    if (_isLoadingData) return;
+    
+    print('ProfileDropdown: Starting to load user data...');
+    setState(() {
+      _isLoadingData = true;
+    });
+
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.email == null) {
+        print('ProfileDropdown: No user found, using default data');
+        Map<String, dynamic> defaultData = _getDefaultUserData();
+        if (mounted) {
+          setState(() {
+            _userData = defaultData;
+            _isLoadingData = false;
+            _cachedUserData = defaultData;
+            _cachedUserId = null;
+            _hasInitialLoad = true;
+          });
+        }
+        return;
+      }
+
+      String userEmail = user.email!;
+      print('ProfileDropdown: Loading data for user: $userEmail');
+
+      // Get fresh data from Firebase
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userEmail)
+          .get();
+
+      Map<String, dynamic> userData = {};
+
+      if (userDoc.exists) {
+        Map<String, dynamic> docData = userDoc.data() as Map<String, dynamic>;
+        
+        // Extract user info
+        if (docData.containsKey('_user_info')) {
+          userData = Map<String, dynamic>.from(docData['_user_info']);
+        } else {
+          userData = Map<String, dynamic>.from(docData);
+        }
+
+        // Get real-time knowledge graphs data
+        QuerySnapshot kgSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userEmail)
+            .collection('knowledge_graphs')
+            .get();
+        
+        int actualKgCount = kgSnapshot.docs.length;
+        double totalSpent = 0.0;
+        double thisMonthSpent = 0.0;
+        
+        DateTime now = DateTime.now();
+        String currentMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+        for (QueryDocumentSnapshot kgDoc in kgSnapshot.docs) {
+          Map<String, dynamic> kgData = kgDoc.data() as Map<String, dynamic>;
+          if (kgData.containsKey('receipt_data')) {
+            Map<String, dynamic> receiptData = kgData['receipt_data'];
+            double amount = (receiptData['total_amount'] as num?)?.toDouble() ?? 0.0;
+            totalSpent += amount;
+            
+            // Check if from current month
+            String? createdAt = receiptData['created_at'];
+            if (createdAt != null && createdAt.startsWith(currentMonth)) {
+              thisMonthSpent += amount;
+            }
+          }
+        }
+        
+        // Update userData with real-time values
+        userData['knowledge_graphs_count'] = actualKgCount;
+        userData['receipts_scanned'] = actualKgCount;
+        userData['total_spent'] = totalSpent;
+        userData['this_month_spent'] = thisMonthSpent;
+        
+        print('ProfileDropdown: Loaded fresh data - KG: $actualKgCount, Total: \$${totalSpent.toStringAsFixed(2)}');
+
+      } else {
+        userData = _getDefaultUserData();
+      }
+
+      if (mounted) {
+        setState(() {
+          _userData = userData;
+          _isLoadingData = false;
+          _cachedUserData = userData;
+          _cachedUserId = user.uid;
+          _hasInitialLoad = true;
+        });
+      }
+    } catch (e) {
+      print('ProfileDropdown: Error loading user data: $e');
+      if (mounted) {
+        setState(() {
+          _userData = _getDefaultUserData();
+          _isLoadingData = false;
+          _cachedUserData = _getDefaultUserData();
+          _cachedUserId = FirebaseAuth.instance.currentUser?.uid;
+          _hasInitialLoad = true;
+        });
+      }
+    }
+  }
   
   /// Clear the static cache
   static void _clearCache() {
@@ -103,74 +220,130 @@ class _ProfileDropdownState extends State<ProfileDropdown> {
 
       String userEmail = user.email!;
       print('ProfileDropdown: Loading data for user: $userEmail');
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-      
-      // Get user info from users collection
-      print('ProfileDropdown: Fetching user document...');
-      DocumentSnapshot userDoc = await firestore
+
+      // Get user document using email as document ID
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userEmail)
           .get();
 
-      Map<String, dynamic> userInfo = {};
+      Map<String, dynamic> userData = {};
+
       if (userDoc.exists) {
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-        userInfo = userData['_user_info'] ?? {};
-        print('ProfileDropdown: User document found with data: $userInfo');
-      } else {
-        print('ProfileDropdown: User document does not exist');
-      }
-
-      // Get knowledge graphs count
-      print('ProfileDropdown: Fetching knowledge graphs...');
-      QuerySnapshot kgSnapshot = await firestore
-          .collection('users')
-          .doc(userEmail)
-          .collection('knowledge_graphs')
-          .get();
-
-      int knowledgeGraphsCount = kgSnapshot.docs.length;
-      print('ProfileDropdown: Found $knowledgeGraphsCount knowledge graphs');
-
-      // Calculate total spending and receipts from knowledge graphs
-      double totalSpent = 0.0;
-      int receiptsCount = 0;
-      double thisMonthSpent = 0.0;
-      DateTime now = DateTime.now();
-      String currentMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
-
-      for (var doc in kgSnapshot.docs) {
-        Map<String, dynamic> kgData = doc.data() as Map<String, dynamic>;
+        Map<String, dynamic> docData = userDoc.data() as Map<String, dynamic>;
         
-        // Extract spending from knowledge graph data
-        Map<String, dynamic>? data = kgData['data'];
-        if (data != null) {
-          double amount = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
-          totalSpent += amount;
-          receiptsCount++;
-
-          // Check if this is from current month
-          String? createdAt = data['created_at'];
-          if (createdAt != null && createdAt.startsWith(currentMonth)) {
-            thisMonthSpent += amount;
-          }
+        // Extract user info from nested structure
+        if (docData.containsKey('_user_info')) {
+          Map<String, dynamic> userInfo = docData['_user_info'] as Map<String, dynamic>;
+          userData = {
+            'uid': userInfo['uid'] ?? user.uid,
+            'name': userInfo['name'] ?? user.displayName ?? 'User',
+            'email': userInfo['email'] ?? user.email,
+            'knowledge_graphs_count': userInfo['knowledge_graphs_count'] ?? 0,
+            'receipts_scanned': userInfo['receipts_scanned'] ?? 0,
+            'created_at': userInfo['created_at'],
+            'last_login': userInfo['last_login'],
+          };
+        } else {
+          // Fallback to old structure
+          userData = {
+            'uid': docData['uid'] ?? user.uid,
+            'name': docData['name'] ?? user.displayName ?? 'User',
+            'email': docData['email'] ?? user.email,
+            'knowledge_graphs_count': docData['knowledge_graphs_count'] ?? 0,
+            'receipts_scanned': docData['receipts_scanned'] ?? 0,
+            'created_at': docData['created_at'],
+            'last_login': docData['last_login'],
+          };
         }
+
+        // Load additional dynamic data - knowledge graphs count
+        try {
+          QuerySnapshot kgSnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userEmail)
+              .collection('knowledge_graphs')
+              .get();
+          
+          int actualKgCount = kgSnapshot.docs.length;
+          userData['knowledge_graphs_count'] = actualKgCount;
+          
+          // Calculate total spent and this month spent
+          double totalSpent = 0.0;
+          double thisMonthSpent = 0.0;
+          DateTime now = DateTime.now();
+          String currentMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+          for (QueryDocumentSnapshot kgDoc in kgSnapshot.docs) {
+            Map<String, dynamic> kgData = kgDoc.data() as Map<String, dynamic>;
+            if (kgData.containsKey('receipt_data') && 
+                kgData['receipt_data'] is Map<String, dynamic>) {
+              Map<String, dynamic> receiptData = kgData['receipt_data'];
+              if (receiptData.containsKey('total_amount')) {
+                double amount = (receiptData['total_amount'] as num?)?.toDouble() ?? 0.0;
+                totalSpent += amount;
+                
+                // Check if receipt is from current month
+                String? createdAt = receiptData['created_at'];
+                if (createdAt != null && createdAt.startsWith(currentMonth)) {
+                  thisMonthSpent += amount;
+                }
+              }
+            }
+          }
+          
+          userData['total_spent'] = totalSpent;
+          userData['this_month_spent'] = thisMonthSpent;
+          userData['receipts_count'] = actualKgCount;
+          
+          // Update the user document with fresh counts
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userEmail)
+              .update({
+            '_user_info.knowledge_graphs_count': actualKgCount,
+            '_user_info.receipts_scanned': actualKgCount,
+          });
+          
+          print('ProfileDropdown: Updated counts - KG: $actualKgCount, Total: \$${totalSpent.toStringAsFixed(2)}');
+        } catch (e) {
+          print('ProfileDropdown: Error loading dynamic data: $e');
+          userData['total_spent'] = 0.0;
+          userData['this_month_spent'] = 0.0;
+        }
+
+      } else {
+        print('ProfileDropdown: User document does not exist, using defaults');
+        userData = _getDefaultUserData();
       }
 
       if (mounted) {
         setState(() {
-          _userData = {
-            'name': userInfo['name'] ?? userEmail.split('@')[0],
-            'email': userEmail,
-            'knowledgeGraphsCount': knowledgeGraphsCount,
-            'totalSpent': totalSpent,
-            'receiptsCount': receiptsCount,
-            'thisMonthSpent': thisMonthSpent,
-            'receiptsScanned': userInfo['receipts_scanned'] ?? receiptsCount,
-            'lastActivity': userInfo['last_activity'],
-            'createdAt': userInfo['created_at'],
-          };
+          _userData = userData;
           _isLoadingData = false;
+          
+          // Update static cache
+          _cachedUserData = userData;
+          _cachedUserId = user.uid;
+          _hasInitialLoad = true;
+        });
+        print('ProfileDropdown: User data loaded successfully');
+      }
+    } catch (e) {
+      print('ProfileDropdown: Error loading user data: $e');
+      if (mounted) {
+        setState(() {
+          _userData = _getDefaultUserData();
+          _isLoadingData = false;
+          
+          // Update cache with default data
+          _cachedUserData = _getDefaultUserData();
+          _cachedUserId = FirebaseAuth.instance.currentUser?.uid;
+          _hasInitialLoad = true;
+        });
+      }
+    }
+  }
           
           // Update cache with user ID
           _cachedUserData = _userData;

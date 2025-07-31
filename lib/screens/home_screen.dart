@@ -30,6 +30,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool animationEnded = false;
+  final GlobalKey<ProfileDropdownState> _profileKey = GlobalKey<ProfileDropdownState>();
 
   Future<void> _handleLogout() async {
     showDialog(
@@ -61,6 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  /// Call this method after receipt processing to refresh profile data
+  void _refreshProfileData() {
+    _profileKey.currentState?._loadUserData();
   }
 
   Color _getPrimaryColor(bool isDark) {
