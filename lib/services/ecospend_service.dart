@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 /// - Audio processing
 /// - Financial insights and summaries
 class EcospendService {
-  static const String _baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app/economix';
+  static const String _baseUrl = 'http://localhost:8001/economix';
   
   /// Chat with Economix AI assistant using text
   static Future<Map<String, dynamic>> chatWithEconomix({

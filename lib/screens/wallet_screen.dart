@@ -4,6 +4,7 @@ import '../services/wallet_service.dart';
 import '../services/auth_service.dart';
 import '../models/wallet_models.dart';
 import '../widgets/wallet_item_card.dart';
+import '../utils/device_compatibility.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -91,6 +92,13 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Future<void> _addToWallet(WalletEligibleItem item) async {
+    // Check device compatibility first
+    final deviceInfo = await DeviceCompatibility.getDeviceInfo();
+    if (!deviceInfo.isSupported) {
+      _showErrorDialog('Device Compatibility Issue: ${deviceInfo.reason}');
+      return;
+    }
+
     setState(() {
       _loadingItemId = item.id;
     });
@@ -107,6 +115,9 @@ class _WalletScreenState extends State<WalletScreen>
         kgUserId = user.email!;
       }
 
+      // Check if user is in test user list for demo mode
+      final isTestUser = _isTestUser(kgUserId);
+      
       final response = await WalletService.generatePass(
         itemId: item.id,
         passType: item.itemType,
@@ -124,7 +135,7 @@ class _WalletScreenState extends State<WalletScreen>
 
           // Show dialog asking if pass was successfully added
           if (mounted) {
-            final wasAdded = await _showPassAddedConfirmation();
+            final wasAdded = await _showPassAddedConfirmation(isTestUser);
             if (wasAdded) {
               setState(() {
                 final index = _allItems.indexWhere((i) => i.id == item.id);
@@ -158,7 +169,7 @@ class _WalletScreenState extends State<WalletScreen>
             }
           }
         } else {
-          _showErrorDialog('Could not open Google Wallet');
+          _showErrorDialog('Could not open Google Wallet. This may be due to Demo Mode restrictions.');
         }
       } else {
         _showErrorDialog(response.error ?? 'Failed to generate wallet pass');
@@ -172,23 +183,48 @@ class _WalletScreenState extends State<WalletScreen>
     }
   }
 
-  Future<bool> _showPassAddedConfirmation() async {
+  // Check if current user is in the test users list
+  bool _isTestUser(String email) {
+    final testUsers = [
+      'suganthpubg@gmail.com', // Your email
+      'sample@gmail.com',
+      // Add more test users here
+    ];
+    return testUsers.contains(email.toLowerCase());
+  }
+
+  Future<bool> _showPassAddedConfirmation(bool isTestUser) async {
     return await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Pass Addition'),
-        content: const Text(
-          'Did you successfully add the pass to your Google Wallet?\n\n'
-          'Note: This app is in testing mode. In production, all Google users would have access.',
+        title: Row(
+          children: [
+            Icon(
+              isTestUser ? Icons.verified_user : Icons.warning,
+              color: isTestUser ? Colors.green : Colors.orange,
+            ),
+            const SizedBox(width: 8),
+            Text(isTestUser ? 'Test User Access' : 'Demo Mode'),
+          ],
+        ),
+        content: Text(
+          isTestUser 
+            ? '✅ You are authorized as a test user!\n\n'
+              'You can add passes to your Google Wallet during the demo period.\n\n'
+              'Did you successfully add the pass?'
+            : '⚠️ Your Google Wallet API is currently in Demo Mode.\n\n'
+              '✅ Testing Mode: Pass creation is simulated\n'
+              '⏳ Production Access: Being requested from Google\n\n'
+              'For now, would you like to simulate adding this pass?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('No, try again'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Yes, added successfully'),
+            child: Text(isTestUser ? 'Yes, added successfully' : 'Simulate Add'),
           ),
         ],
       ),
@@ -205,6 +241,123 @@ class _WalletScreenState extends State<WalletScreen>
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showWalletInfo() {
+    final user = AuthService.currentUser;
+    final userEmail = user?.email ?? 'Unknown';
+    final isTestUser = _isTestUser(userEmail);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.wallet, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 8),
+            const Text('Google Wallet Status'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isTestUser ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isTestUser ? Colors.green : Colors.orange,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isTestUser ? Icons.verified_user : Icons.warning,
+                      color: isTestUser ? Colors.green : Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isTestUser 
+                          ? 'You are a verified test user!'
+                          : 'Demo Mode - Limited Access',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isTestUser ? Colors.green[800] : Colors.orange[800],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '🔧 Current Status: Demo Mode',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              if (isTestUser) ...[
+                const Text(
+                  '✅ Your account has test access:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text('• You can add real passes to Google Wallet'),
+                const Text('• Passes will show "[TEST ONLY]" prefix'),
+                const Text('• Full functionality during demo period'),
+                const SizedBox(height: 16),
+              ] else ...[
+                const Text(
+                  'Your Google Wallet API is currently in Demo Mode:',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                const Text('• Only test users can add passes'),
+                const Text('• Passes show "[TEST ONLY]" prefix'),
+                const Text('• Limited to authorized accounts'),
+                const SizedBox(height: 16),
+              ],
+              const Text(
+                '🚀 To Enable for All Users:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              const Text('1. Complete Business Profile'),
+              const Text('2. Create Pass Classes'),
+              const Text('3. Request Publishing Access'),
+              const Text('4. Wait for Google approval'),
+              const SizedBox(height: 16),
+              const Text(
+                '⏳ Expected Timeline: 1-2 weeks',
+                style: TextStyle(fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Current user: $userEmail',
+                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Open Google Wallet Console
+            },
+            child: const Text('Open Console'),
           ),
         ],
       ),
@@ -261,6 +414,11 @@ class _WalletScreenState extends State<WalletScreen>
                 ),
               ],
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Colors.white),
+            onPressed: _showWalletInfo,
+            tooltip: 'Google Wallet Info',
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),

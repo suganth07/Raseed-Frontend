@@ -1,9 +1,17 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/wallet_models.dart';
 
 class WalletService {
-  static const String baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app/wallet';
+  static const String baseUrl = 'http://localhost:8001/wallet';
+  
+  // NOTE: For production deployment:
+  // 1. Update Google Wallet API to production mode in Google Cloud Console
+  // 2. Add all intended user emails to the approved testers list
+  // 3. Submit for review to remove testing restrictions
+  // 4. Update backend service account with production credentials
   
   // Get eligible wallet items for a user
   static Future<WalletItemsResponse> getEligibleItems(String userId) async {
@@ -12,6 +20,7 @@ class WalletService {
         Uri.parse('$baseUrl/eligible-items/$userId'),
         headers: {
           'Content-Type': 'application/json',
+          'X-User-Agent': 'Raseed-Flutter-App/1.0.0',
         },
       );
 
@@ -38,7 +47,7 @@ class WalletService {
     }
   }
 
-  // Generate wallet pass
+  // Generate wallet pass with device compatibility
   static Future<PassGenerationResponse> generatePass({
     required String itemId,
     required String passType,
@@ -55,6 +64,8 @@ class WalletService {
         Uri.parse('$baseUrl/generate-pass'),
         headers: {
           'Content-Type': 'application/json',
+          'X-User-Agent': 'Raseed-Flutter-App/1.0.0',
+          'X-Device-Platform': _getDevicePlatform(),
         },
         body: json.encode(request.toJson()),
       );
@@ -62,6 +73,11 @@ class WalletService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return PassGenerationResponse.fromJson(data);
+      } else if (response.statusCode == 403) {
+        return PassGenerationResponse(
+          success: false,
+          error: 'Access restricted. This app is in testing mode. Contact administrator for access.',
+        );
       } else {
         return PassGenerationResponse(
           success: false,
@@ -74,6 +90,13 @@ class WalletService {
         error: 'Network error: $e',
       );
     }
+  }
+
+  static String _getDevicePlatform() {
+    if (kIsWeb) return 'web';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    return 'unknown';
   }
 
   // Check wallet service health

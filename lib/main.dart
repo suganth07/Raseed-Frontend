@@ -105,7 +105,7 @@ class _RaseedAppState extends State<RaseedApp> {
               themeMode: _themeMode,
               onThemeToggle: _toggleTheme,
             );
-          } else {
+          } else {  
             // User is not logged in
             return const LoginScreen();
           }

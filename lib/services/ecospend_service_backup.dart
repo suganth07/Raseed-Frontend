@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 /// - Sustainability tips and recycling centers
 /// - AI-powered chat functionality
 class EcospendService {
-  static const String _baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app/ecospend';
+  static const String _baseUrl = 'http://localhost:8001/ecospend';
   
   /// Get comprehensive spending analysis for a user
   static Future<Map<String, dynamic>> getSpendingAnalysis(String userEmail) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/ecospend_service.dart';
+import 'enhanced_economix_chat_screen.dart';
 
 class EconomixChatScreen extends StatefulWidget {
   final String userId;
@@ -240,6 +241,30 @@ class _EconomixChatScreenState extends State<EconomixChatScreen> {
         backgroundColor: Colors.blue[700],
         elevation: 2,
         actions: [
+          // Enhanced version button
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => EnhancedEconomixChatScreen(userId: widget.userId),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.psychology, color: Colors.white, size: 16),
+              label: const Text(
+                'Enhanced',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.white),
             onPressed: () {

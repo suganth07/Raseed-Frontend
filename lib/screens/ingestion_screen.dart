@@ -8,6 +8,7 @@ import '../widgets/ingestion_card.dart';
 import '../services/api_services.dart';
 import '../services/auth_service.dart';
 import '../models/receipt_data.dart';
+import '../utils/profile_refresh.dart';
 
 class IngestionScreen extends StatefulWidget {
   final String userId;
@@ -177,6 +178,8 @@ class _IngestionScreenState extends State<IngestionScreen> {
 
           if (result['success']) {
             _showToast("✅ Saved to your Knowledge Graph!");
+            // Refresh profile data to show updated counts and spending
+            ProfileRefresh.notifyRefresh();
           } else {
             _showToast("⚠ Failed to save: ${result['message']}");
           }

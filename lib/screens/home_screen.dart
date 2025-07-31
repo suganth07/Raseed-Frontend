@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:animated_text_kit/animated_text_kit.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import '../services/auth_service.dart';
-import '../services/warranty_reminder_service.dart';
-import 'login_screen.dart';
 import 'ingestion_screen.dart';
 import 'graph_visualization_screen.dart';
 import 'wallet_screen.dart';
 import 'profile_dropdown.dart';
-import 'user_data_test_screen.dart';
 import 'warranty_reminder_screen.dart';
 import 'economix_chat_screen.dart';
+import 'enhanced_economix_chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -30,50 +26,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool animationEnded = false;
-  final GlobalKey<ProfileDropdownState> _profileKey = GlobalKey<ProfileDropdownState>();
-
-  Future<void> _handleLogout() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop(); // Close dialog
-                await AuthService.signOut();
-                if (mounted) {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Logout', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Call this method after receipt processing to refresh profile data
-  void _refreshProfileData() {
-    _profileKey.currentState?._loadUserData();
-  }
 
   Color _getPrimaryColor(bool isDark) {
-    return isDark ? const Color(0xFF4285F4) : const Color(0xFF1976D2);
-  }
-
-  Color _getSecondaryColor(bool isDark) {
     return isDark ? const Color(0xFF4285F4) : const Color(0xFF1976D2);
   }
 
@@ -113,19 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          // Debug button for testing user data
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const UserDataTestScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.bug_report, size: 20),
-            tooltip: 'Test User Data',
-          ),
           IconButton(
             onPressed: widget.onThemeToggle,
             icon: Icon(
@@ -138,150 +79,221 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Toggle theme',
           ),
           const SizedBox(width: 8),
-          ProfileDropdown(
-            onThemeToggle: widget.onThemeToggle ?? () {},
-            themeMode: widget.themeMode ?? ThemeMode.system,
+          Flexible(
+            child: ProfileDropdown(
+              onThemeToggle: widget.onThemeToggle ?? () {},
+              themeMode: widget.themeMode ?? ThemeMode.system,
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
         ],
       ),
       body: Column(
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             color: isDark ? Colors.grey[850] : Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Welcome ${AuthService.currentUser?.displayName ?? 'User'}!',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Use LayoutBuilder to make text responsive
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final availableWidth = constraints.maxWidth - 32; // Account for padding
+                      return Container(
+                        width: availableWidth,
+                        child: Text(
+                          'Welcome ${AuthService.currentUser?.displayName ?? 'User'}!',
+                          style: TextStyle(
+                            fontSize: availableWidth > 400 ? 18 : 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    },
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  "Spend smarter, live greener, let your wallet reflect your values.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      "Spend smarter, live greener, let your wallet reflect your values.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Column(
                   children: [
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 20,
-                      crossAxisSpacing: 20,
-                      childAspectRatio: 1.1,
-                      children: [
-                        _buildQuickActionCard(
-                          context: context,
-                          title: "Scan Receipt",
-                          subtitle: "Add new receipt",
-                          icon: Icons.document_scanner,
-                          isDark: isDark,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => IngestionScreen(userId: widget.userId),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildQuickActionCard(
-                          context: context,
-                          title: "GWallet Pass",
-                          subtitle: "Digital wallet",
-                          icon: Icons.wallet,
-                          isDark: isDark,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const WalletScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildQuickActionCard(
-                          context: context,
-                          title: "Analytics",
-                          subtitle: "Knowledge Graph",
-                          icon: Icons.analytics,
-                          isDark: isDark,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => GraphVisualizationScreen(
-                                  userId: widget.userId,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildQuickActionCard(
-                          context: context,
-                          title: "Economix Bot",
-                          subtitle: "AI Financial Assistant",
-                          icon: Icons.smart_toy,
-                          isDark: isDark,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EconomixChatScreen(
-                                  userId: widget.userId,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    // Warranty Reminder button - centered single button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width * 0.4, // Same width as grid buttons
-                          child: _buildQuickActionCard(
-                            context: context,
-                            title: "Set Reminder",
-                            subtitle: "Set Reminder for warranty and expiry",
-                            icon: Icons.schedule_outlined,
-                            isDark: isDark,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => WarrantyReminderScreen(
-                                    userId: widget.userId,
+                    // Use responsive layout based on screen width
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossAxisCount = 2;
+                        double childAspectRatio = 2.2;
+                        
+                        if (constraints.maxWidth > 600) {
+                          crossAxisCount = 3;
+                          childAspectRatio = 2.5;
+                        }
+                        if (constraints.maxWidth > 900) {
+                          crossAxisCount = 4;
+                          childAspectRatio = 2.8;
+                        }
+                        
+                        return GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: crossAxisCount,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: childAspectRatio,
+                          children: [
+                            _buildQuickActionCard(
+                              context: context,
+                              title: "Scan Receipt",
+                              subtitle: "Add new receipt",
+                              icon: Icons.document_scanner,
+                              isDark: isDark,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => IngestionScreen(userId: widget.userId),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
+                            _buildQuickActionCard(
+                              context: context,
+                              title: "GWallet Pass",
+                              subtitle: "Digital wallet",
+                              icon: Icons.wallet,
+                              isDark: isDark,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const WalletScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildQuickActionCard(
+                              context: context,
+                              title: "Analytics",
+                              subtitle: "Knowledge Graph",
+                              icon: Icons.analytics,
+                              isDark: isDark,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => GraphVisualizationScreen(
+                                      userId: widget.userId,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildQuickActionCard(
+                              context: context,
+                              title: "Economix Bot",
+                              subtitle: "AI Financial Assistant",
+                              icon: Icons.smart_toy,
+                              isDark: isDark,
+                              onTap: () {
+                                // Show options dialog
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: Text('Choose Economix Mode'),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text('Select your preferred chat experience:'),
+                                          SizedBox(height: 16),
+                                          ListTile(
+                                            leading: Icon(Icons.auto_awesome),
+                                            title: Text('Enhanced'),
+                                            subtitle: Text('Smart suggestions & context'),
+                                            onTap: () {
+                                              Navigator.of(context).pop();
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => EnhancedEconomixChatScreen(
+                                                    userId: widget.userId,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          ListTile(
+                                            leading: Icon(Icons.chat),
+                                            title: Text('Standard'),
+                                            subtitle: Text('Simple chat interface'),
+                                            onTap: () {
+                                              Navigator.of(context).pop();
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => EconomixChatScreen(
+                                                    userId: widget.userId,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Warranty reminder button
+                    _buildQuickActionCard(
+                      context: context,
+                      title: "Warranty Reminders",
+                      subtitle: "Set reminders for warranty expiry",
+                      icon: Icons.schedule_outlined,
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => WarrantyReminderScreen(
+                              userId: widget.userId,
+                            ),
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -349,13 +361,53 @@ class _HomeScreenState extends State<HomeScreen> {
                   isActive: false,
                   isDark: isDark,
                   onTap: () {
-                    Fluttertoast.showToast(
-                      msg: "Economix Chat functionality coming soon!",
-                      toastLength: Toast.LENGTH_SHORT,
-                      gravity: ToastGravity.BOTTOM,
-                      backgroundColor: _getPrimaryColor(isDark),
-                      textColor: Colors.white,
-                      fontSize: 16.0,
+                    // Show options dialog
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text('Choose Economix Mode'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Select your preferred chat experience:'),
+                              SizedBox(height: 16),
+                              ListTile(
+                                leading: Icon(Icons.auto_awesome),
+                                title: Text('Enhanced'),
+                                subtitle: Text('Smart suggestions & context'),
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EnhancedEconomixChatScreen(
+                                        userId: widget.userId,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.chat),
+                                title: Text('Standard'),
+                                subtitle: Text('Simple chat interface'),
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EconomixChatScreen(
+                                        userId: widget.userId,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -379,13 +431,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
+        height: 56, // Fixed height for consistency
         decoration: BoxDecoration(
           color: isDark
               ? Colors.grey[800]
               : Colors.grey[50],
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isDark
                 ? Colors.grey[700]!
@@ -394,47 +447,61 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(isDark ? 0.1 : 0.04),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   icon,
-                  size: 28,
+                  size: 16,
                   color: primaryColor,
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: primaryColor,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
               ),
             ],
           ),

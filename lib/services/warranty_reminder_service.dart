@@ -5,7 +5,7 @@ import 'google_calendar_service.dart';
 import 'auth_service.dart';
 
 class WarrantyReminderService {
-  static const String _baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app'; // Backend port 8001
+  static const String _baseUrl = 'http://localhost:8001'; // Backend port 8001
   
   /// Create calendar reminders for all warranties expiring soon using Google Calendar
   static Future<Map<String, dynamic>> createAllWarrantyReminders(String userId) async {
@@ -42,6 +42,21 @@ class WarrantyReminderService {
           if (product['expiry_date'] != null) {
             try {
               expiryDate = DateTime.parse(product['expiry_date'].toString());
+            } catch (e) {
+              // Try warranty_end_date as backup
+              if (product['warranty_end_date'] != null) {
+                try {
+                  expiryDate = DateTime.parse(product['warranty_end_date'].toString());
+                } catch (e2) {
+                  continue; // Skip products with invalid dates
+                }
+              } else {
+                continue; // Skip products with invalid dates
+              }
+            }
+          } else if (product['warranty_end_date'] != null) {
+            try {
+              expiryDate = DateTime.parse(product['warranty_end_date'].toString());
             } catch (e) {
               continue; // Skip products with invalid dates
             }
@@ -193,9 +208,27 @@ class WarrantyReminderService {
           expiryDate = DateTime.parse(targetProduct['expiry_date'].toString());
         } catch (e) {
           if (kDebugMode) {
-            print('Error parsing expiry date: $e');
+            print('Error parsing expiry_date: $e');
           }
         }
+      }
+      
+      // Also try warranty_end_date field as backup
+      if (expiryDate == null && targetProduct['warranty_end_date'] != null) {
+        try {
+          expiryDate = DateTime.parse(targetProduct['warranty_end_date'].toString());
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error parsing warranty_end_date: $e');
+          }
+        }
+      }
+
+      if (kDebugMode) {
+        print('Product: $productName');
+        print('Raw expiry_date: ${targetProduct['expiry_date']}');
+        print('Raw warranty_end_date: ${targetProduct['warranty_end_date']}');
+        print('Parsed expiry date: $expiryDate');
       }
 
       if (expiryDate == null) {

@@ -106,11 +106,24 @@ class GoogleCalendarService {
       // Calculate reminder date (2 days before expiry)
       final reminderDate = expiryDate.subtract(Duration(days: 2));
       
-      // Don't create reminders for past dates
-      if (reminderDate.isBefore(DateTime.now())) {
+      // For debugging - let's be more lenient with date checking
+      final now = DateTime.now();
+      final currentDate = DateTime(now.year, now.month, now.day); // Strip time component
+      final reminderDateOnly = DateTime(reminderDate.year, reminderDate.month, reminderDate.day);
+      
+      if (kDebugMode) {
+        print('Expiry Date: $expiryDate');
+        print('Reminder Date: $reminderDate');
+        print('Current Date: $currentDate');
+        print('Reminder Date Only: $reminderDateOnly');
+        print('Is reminder in past: ${reminderDateOnly.isBefore(currentDate)}');
+      }
+      
+      // Don't create reminders for past dates (comparing date only, not time)
+      if (reminderDateOnly.isBefore(currentDate)) {
         return {
           'status': 'error',
-          'error_message': 'Cannot create reminder for past dates',
+          'error_message': 'Cannot create reminder for past dates. Expiry: ${_formatDate(expiryDate)}, Reminder would be: ${_formatDate(reminderDate)}',
         };
       }
 
