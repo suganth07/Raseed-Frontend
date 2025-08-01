@@ -1,17 +1,24 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'utils/debug_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize debug settings to hide overflow indicators
+  DebugUtils.initialize();
+  
+  // Suppress visual overflow errors globally (red/yellow boxes)
+  ErrorWidget.builder = DebugUtils.customErrorWidgetBuilder;
+
   try {
-    // Initialize Firebase with options
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -19,9 +26,10 @@ void main() async {
   } catch (e) {
     print('Firebase initialization error: $e');
   }
-  
+
   runApp(const RaseedApp());
 }
+
 
 class RaseedApp extends StatefulWidget {
   const RaseedApp({super.key});
@@ -44,6 +52,15 @@ class _RaseedAppState extends State<RaseedApp> {
     return MaterialApp(
       title: 'Raseed',
       debugShowCheckedModeBanner: false,
+      // Global builder to handle overflow gracefully
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto',

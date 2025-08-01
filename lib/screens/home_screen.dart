@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
@@ -259,160 +261,182 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadUserData,
-        child: CustomScrollView(
-          slivers: [
-          // Google-style App Bar
-          SliverAppBar.large(
-            expandedHeight: 200,
-            floating: false,
-            pinned: true,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-              title: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Good ${_getGreeting()}',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _loadUserData,
+          child: CustomScrollView(
+            slivers: [
+            // Google-style App Bar
+            SliverAppBar.large(
+              expandedHeight: 200,
+              floating: false,
+              pinned: true,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              elevation: 0,
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 16, right: 100),
+                title: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Good ${_getGreeting()}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                  ),
-                  Text(
-                    _getUserDisplayName(),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w400,
+                    Text(
+                      _getUserDisplayName(),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: widget.onThemeToggle ?? () {
-                  // Fallback theme toggle if none provided
-                  print('Theme toggle pressed');
-                },
-                icon: Icon(
-                  widget.themeMode == ThemeMode.dark
-                      ? Icons.light_mode_outlined
-                      : Icons.dark_mode_outlined,
+                  ],
                 ),
               ),
-              IconButton(
-                onPressed: () {
-                  _showProfileModal(context);
-                },
-                icon: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.person,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+              actions: [
+                IconButton(
+                  onPressed: widget.onThemeToggle ?? () {
+                    // Fallback theme toggle if none provided
+                    print('Theme toggle pressed');
+                  },
+                  icon: Icon(
+                    widget.themeMode == ThemeMode.dark
+                        ? Icons.light_mode_outlined
+                        : Icons.dark_mode_outlined,
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-            ],
-          ),
-          
-          // Quick Actions
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quick Actions',
-                    style: Theme.of(context).textTheme.titleLarge,
+                IconButton(
+                  onPressed: () {
+                    _showProfileModal(context);
+                  },
+                  icon: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    child: Icon(
+                      Icons.person,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return _buildQuickActionsGrid(context, constraints);
-                    },
-                  ),
-                ],
+                ),
+                const SizedBox(width: 16),
+              ],
+            ),
+            
+            // Quick Actions
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quick Actions',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return _buildQuickActionsGrid(context, constraints);
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Statistics Cards
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Overview',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildOverviewCards(context),
-                ],
+            // Statistics Cards
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Overview',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildOverviewCards(context),
+                  ],
+                ),
               ),
             ),
-          ),
-          
-          // Recent Activity
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Recent Activity',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text('View all'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildRecentActivityList(context),
-                ],
+            
+            // Recent Activity
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent Activity',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        TextButton(
+                          onPressed: () {},
+                          child: const Text('View all'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildRecentActivityList(context),
+                  ],
+                ),
               ),
             ),
-          ),
-          
-          // Add some bottom padding
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 84),
-          ),
-        ],
+            
+            // Add some bottom padding
+            SliverToBoxAdapter(
+              child: SizedBox(height: MediaQuery.of(context).viewInsets.bottom + 100),
+            ),
+          ],
+        ),
       ),
     ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => IngestionScreen(userId: widget.userId),
+      floatingActionButton: MediaQuery.of(context).size.width > 600 
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => IngestionScreen(userId: widget.userId),
+                  ),
+                );
+                // Refresh data if a receipt was added
+                if (result == true) {
+                  await _loadUserData();
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add Receipt'),
+            )
+          : FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => IngestionScreen(userId: widget.userId),
+                  ),
+                );
+                // Refresh data if a receipt was added
+                if (result == true) {
+                  await _loadUserData();
+                }
+              },
+              child: const Icon(Icons.add),
             ),
-          );
-          // Refresh data if a receipt was added
-          if (result == true) {
-            await _loadUserData();
-          }
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Add Receipt'),
-      ),
       bottomNavigationBar: NavigationBar(
         destinations: const [
           NavigationDestination(
@@ -488,8 +512,8 @@ class _HomeScreenState extends State<HomeScreen> {
     
     // Determine grid layout based on screen width
     final screenWidth = constraints?.maxWidth ?? MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 600 ? 4 : 2; // 4 columns on desktop, 2 on mobile
-    final childAspectRatio = screenWidth > 600 ? 2.0 : 1.5; // Different ratios for different screen sizes
+    final crossAxisCount = screenWidth > 800 ? 5 : screenWidth > 600 ? 3 : 2;
+    final childAspectRatio = screenWidth > 600 ? 2.2 : 1.4;
     
     final actions = [
       {
@@ -565,8 +589,8 @@ class _HomeScreenState extends State<HomeScreen> {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         childAspectRatio: childAspectRatio,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: actions.length,
       itemBuilder: (context, index) {
@@ -578,7 +602,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: action['onTap'] as VoidCallback,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(screenWidth > 600 ? 16 : 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -586,30 +610,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icon(
                     action['icon'] as IconData,
                     color: action['onColor'] as Color,
-                    size: 24,
+                    size: screenWidth > 600 ? 24 : 20,
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        action['title'] as String,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: action['onColor'] as Color,
-                          fontWeight: FontWeight.w500,
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          action['title'] as String,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: action['onColor'] as Color,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        action['subtitle'] as String,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: (action['onColor'] as Color).withOpacity(0.7),
+                        const SizedBox(height: 2),
+                        Text(
+                          action['subtitle'] as String,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: (action['onColor'] as Color).withOpacity(0.7),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -792,17 +819,20 @@ class _HomeScreenState extends State<HomeScreen> {
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             leading: CircleAvatar(
               backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
               child: Icon(
                 _getIconForCategory(item['category'] ?? ''),
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 20,
               ),
             ),
             title: Text(
               item['title'] ?? 'Unknown Receipt',
               style: Theme.of(context).textTheme.bodyLarge,
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
             subtitle: Text(
               item['subtitle'] ?? 'No details',
@@ -810,6 +840,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
             trailing: Icon(
               Icons.chevron_right,
@@ -834,118 +865,156 @@ class _HomeScreenState extends State<HomeScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      child: Icon(
-                        Icons.person,
-                        size: 28,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.displayName ?? 'User',
-                            style: Theme.of(context).textTheme.titleLarge,
-                            overflow: TextOverflow.ellipsis,
+                    // Header
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          child: Icon(
+                            Icons.person,
+                            size: 28,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
-                          Text(
-                            user?.email ?? 'No email',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user?.displayName ?? 'User',
+                                style: Theme.of(context).textTheme.titleLarge,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              Text(
+                                user?.email ?? 'No email',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Stats
+                    if (_userData != null) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              context,
+                              'Receipts',
+                              '${_userData!['receiptsCount'] ?? 0}',
+                              Icons.receipt_long,
                             ),
-                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              context,
+                              'This Month',
+                              '\$${(_userData!['thisMonthSpent'] ?? 0.0).toStringAsFixed(2)}',
+                              Icons.trending_up,
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              context,
+                              'Total Spent',
+                              '\$${(_userData!['totalSpent'] ?? 0.0).toStringAsFixed(2)}',
+                              Icons.account_balance_wallet,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              context,
+                              'Avg/Receipt',
+                              '\$${(_userData!['receiptsCount'] ?? 0) > 0 ? ((_userData!['totalSpent'] ?? 0.0) / (_userData!['receiptsCount'] ?? 1)).toStringAsFixed(2) : '0.00'}',
+                              Icons.analytics,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // Actions
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        widget.themeMode == ThemeMode.dark
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      title: Text(
+                        widget.themeMode == ThemeMode.dark
+                            ? 'Switch to Light Mode'
+                            : 'Switch to Dark Mode',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        widget.onThemeToggle?.call();
+                      },
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
+                    
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.logout,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      title: Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      onTap: () async {
+                        Navigator.of(context).pop();
+                        await AuthService.signOut();
+                        if (context.mounted) {
+                          Navigator.of(context).pushReplacementNamed('/login');
+                        }
+                      },
                     ),
                   ],
                 ),
-                
-                const SizedBox(height: 24),
-                
-                // Stats
-                if (_userData != null) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          context,
-                          'Receipts',
-                          '${_userData!['receiptsCount'] ?? 0}',
-                          Icons.receipt_long,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          context,
-                          'Spent',
-                          '\$${(_userData!['thisMonthSpent'] ?? 0.0).toStringAsFixed(2)}',
-                          Icons.trending_up,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
-                
-                // Actions
-                ListTile(
-                  leading: Icon(
-                    widget.themeMode == ThemeMode.dark
-                        ? Icons.light_mode
-                        : Icons.dark_mode,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  title: Text(
-                    widget.themeMode == ThemeMode.dark
-                        ? 'Switch to Light Mode'
-                        : 'Switch to Dark Mode',
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    widget.onThemeToggle?.call();
-                  },
-                ),
-                
-                ListTile(
-                  leading: Icon(
-                    Icons.logout,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  title: Text(
-                    'Sign Out',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    await AuthService.signOut();
-                    if (context.mounted) {
-                      Navigator.of(context).pushReplacementNamed('/login');
-                    }
-                  },
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -955,30 +1024,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatCard(BuildContext context, String label, String value, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
             color: Theme.of(context).colorScheme.primary,
-            size: 24,
+            size: 20,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
           ),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
           ),
         ],
       ),
