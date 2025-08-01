@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
+import '../widgets/logo_widget.dart';
 import 'ingestion_screen.dart';
 import 'graph_visualization_screen.dart';
 import 'wallet_screen.dart';
@@ -301,6 +302,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               actions: [
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: const AppBarLogoWidget(),
+                ),
                 IconButton(
                   onPressed: widget.onThemeToggle ?? () {
                     // Fallback theme toggle if none provided

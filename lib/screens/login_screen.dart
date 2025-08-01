@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../services/auth_service.dart';
+import '../widgets/logo_widget.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 
@@ -129,19 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Logo and title
                   Column(
                     children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(
-                          Icons.receipt_long,
-                          size: 40,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
-                      ),
+                      const AppLogoWidget(),
                       const SizedBox(height: 24),
                       Text(
                         'Welcome to Raseed',
