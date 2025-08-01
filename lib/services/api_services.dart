@@ -8,7 +8,7 @@ import 'auth_service.dart';
 
 class ApiService {
   // Updated to use our new backend port and simplified endpoints
-  static const String baseUrl = 'http://localhost:8001';
+  static const String baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app';
 
   /// Get consistent user ID from logged-in user - use full email as unique identifier
   static String _getCurrentUserId() {

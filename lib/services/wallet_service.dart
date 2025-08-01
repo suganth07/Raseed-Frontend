@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/wallet_models.dart';
 
 class WalletService {
-  static const String baseUrl = 'http://localhost:8001/wallet';
+  static const String baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app/wallet';
   
   // NOTE: For production deployment:
   // 1. Update Google Wallet API to production mode in Google Cloud Console

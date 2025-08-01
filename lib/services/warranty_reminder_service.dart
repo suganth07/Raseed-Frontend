@@ -5,7 +5,7 @@ import 'google_calendar_service.dart';
 import 'auth_service.dart';
 
 class WarrantyReminderService {
-  static const String _baseUrl = 'http://localhost:8001'; // Backend port 8001
+  static const String _baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app'; // Backend port 8001
   
   /// Create calendar reminders for all warranties expiring soon using Google Calendar
   static Future<Map<String, dynamic>> createAllWarrantyReminders(String userId) async {

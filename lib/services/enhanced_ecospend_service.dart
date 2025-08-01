@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 /// - Conversation context management
 /// - Intent-based responses
 class EnhancedEcospendService {
-  static const String _baseUrl = 'http://localhost:8001/economix';
+  static const String _baseUrl = 'https://raseed-gcloud-381171297188.asia-south1.run.app/economix';
   
   // Conversation history for context
   static List<Map<String, dynamic>> _conversationHistory = [];
